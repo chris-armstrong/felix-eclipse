@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Felix Eclipse PDE Launcher
+Bundle-SymbolicName: au.com.forge.felix.eclipse_pde_launcher
+Bundle-Version: 0.1.2
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-Vendor: Forge Research
