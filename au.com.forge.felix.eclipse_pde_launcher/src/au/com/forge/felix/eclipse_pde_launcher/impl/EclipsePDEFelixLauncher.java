@@ -91,6 +91,7 @@ public class EclipsePDEFelixLauncher {
 			AutoProcessor.process(stringMap, framework.getBundleContext());
 			framework.start();
 			framework.waitForStop(0);
+			System.exit(0);
 		} catch (BundleException e) {
 			System.err.println("Could not start the framework framework: " + e);
 			e.printStackTrace();
