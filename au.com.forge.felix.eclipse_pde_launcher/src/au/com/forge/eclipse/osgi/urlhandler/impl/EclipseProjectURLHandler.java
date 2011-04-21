@@ -274,7 +274,8 @@ public class EclipseProjectURLHandler extends AbstractURLStreamHandlerService {
 				if (prefix.equals(""))
 					fileOutputPath = inputFile.getName();
 				else
-					fileOutputPath = prefix + File.separator
+					// Use '/' as ZIP files are always constructed with forward slash
+					fileOutputPath = prefix + "/"
 							+ inputFile.getName();
 
 				if (inputFile.isFile()) {

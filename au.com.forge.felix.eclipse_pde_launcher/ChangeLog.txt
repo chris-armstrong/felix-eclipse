@@ -1,0 +1,3 @@
+0.1.5
+
+* Replace System.getProperty("file.separator") with '/' in EclipseProjectURLHandler.java during construction of ZIP files
