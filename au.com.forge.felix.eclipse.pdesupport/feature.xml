@@ -2,12 +2,15 @@
 <feature
       id="au.com.forge.apache.felix.pdesupport"
       label="Apache Felix PDE Support for Eclipse"
-      version="0.1.4"
+      version="0.1.5"
       provider-name="Forge Research (http://www.forge.com.au)">
 
    <description url="http://code.google.com/p/felix-eclipse/">
       Adds support for running Apache Felix from OSGi framework launch
 configurations.
+
+New in version 0.1.5
+* Fix path separator used during construction of in-memory JARs on Windows
    </description>
 
    <copyright>
@@ -277,14 +280,14 @@ The GNU General Public License does not permit incorporating your program into p
    </requires>
 
    <plugin
-         id="au.com.forge.felix.eclipse.launch_configuration"
+         id="au.com.forge.felix.eclipse_pde_launcher"
          download-size="0"
          install-size="0"
          version="0.0.0"
          unpack="false"/>
 
    <plugin
-         id="au.com.forge.felix.eclipse_pde_launcher"
+         id="au.com.forge.felix.eclipse.launch_configuration"
          download-size="0"
          install-size="0"
          version="0.0.0"
