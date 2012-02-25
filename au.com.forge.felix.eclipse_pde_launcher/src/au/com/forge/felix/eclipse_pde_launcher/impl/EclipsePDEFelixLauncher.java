@@ -20,34 +20,39 @@
  */
 package au.com.forge.felix.eclipse_pde_launcher.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Properties;
 
-import org.osgi.framework.launch.FrameworkFactory;
+import org.apache.felix.framework.Felix;
 import org.apache.felix.framework.util.StringMap;
 import org.apache.felix.main.AutoProcessor;
 import org.apache.felix.main.Main;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleException;
-import org.osgi.framework.launch.Framework;
+
+import org.apache.felix.framework.FrameworkFactory;
 
 import au.com.forge.eclipse.osgi.autoupdater.impl.EclipseProjectURLAutoUpdater;
 import au.com.forge.eclipse.osgi.urlhandler.impl.EPURLHandlerActivator;
 
 /**
- * The Eclipse PDE Felix framework launcher. It automatically
- * installs the Eclipse project directory stream handler and
- * the Eclipse project URL auto-updater.
+ * The Eclipse PDE Felix framework launcher. It automatically installs the
+ * Eclipse project directory stream handler and the Eclipse project URL
+ * auto-updater.
  * 
- * It is needed to be able to start the Apache Felix framework
- * from an Eclipse launch configuration that specifies startup
- * bundles.
+ * It is needed to be able to start the Apache Felix framework from an Eclipse
+ * launch configuration that specifies startup bundles.
  * 
  * @author Christopher Armstrong
- *
+ * 
  */
 public class EclipsePDEFelixLauncher {
-	private static Framework framework = null;
+	private static Felix framework = null;
+	private static final String LAUNCHER_CONFIG_PROPERTY_KEY = "au.com.forge.felix.config.properties";
 
 	/**
 	 * @param args
@@ -59,6 +64,8 @@ public class EclipsePDEFelixLauncher {
 			configProperties = new Properties();
 		}
 		Main.copySystemProperties(configProperties);
+
+		mergeWithPDELauncherProperties(configProperties);
 
 		String enableHook = configProperties
 				.getProperty(Main.SHUTDOWN_HOOK_PROP);
@@ -85,8 +92,8 @@ public class EclipsePDEFelixLauncher {
 
 			StringMap stringMap = new StringMap(configProperties, false);
 			stringMap.put("felix.systembundle.activators", activators);
-			
-			framework = frameworkFactory.newFramework(stringMap);
+
+			framework = (Felix)frameworkFactory.newFramework(stringMap);
 			framework.init();
 			AutoProcessor.process(stringMap, framework.getBundleContext());
 			framework.start();
@@ -97,7 +104,8 @@ public class EclipsePDEFelixLauncher {
 			e.printStackTrace();
 			System.exit(1);
 		} catch (InterruptedException e) {
-			System.err.println("Interrupted waiting for framework to finish: "+e);
+			System.err.println("Interrupted waiting for framework to finish: "
+					+ e);
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -107,4 +115,53 @@ public class EclipsePDEFelixLauncher {
 		return new org.apache.felix.framework.FrameworkFactory();
 	}
 
+	private static void mergeWithPDELauncherProperties(
+			Properties defaultProperties) {
+		String configUri = System.getProperty(LAUNCHER_CONFIG_PROPERTY_KEY);
+
+		if (configUri == null) {
+			// nothing todo
+			return;
+		}
+		try {
+			InputStream openStream = URI.create(configUri).toURL().openStream();
+			Properties toMergeProperties = new Properties();
+			toMergeProperties.load(openStream);
+			Enumeration<Object> keys = toMergeProperties.keys();
+			while (keys.hasMoreElements()) {
+				String key = (String) keys.nextElement();
+
+				if (key.startsWith("felix.auto.")) {
+					defaultProperties.put(
+							key,
+							mergeFelixBundleAutoOrInstallString(
+									(String) defaultProperties.get(key),
+									(String) toMergeProperties.get(key)));
+
+				} else {
+					defaultProperties.put(key, toMergeProperties.get(key));
+				}
+			}
+
+		} catch (IOException e) {
+			System.err
+					.println("error while loading PDE felix configuration file: "
+							+ e);
+			e.printStackTrace();
+			// ?!
+			// System.exit(1);
+		}
+	}
+
+	private static String mergeFelixBundleAutoOrInstallString(
+			String toBeExtended, String toExtend) {
+
+		StringBuilder builder = new StringBuilder();
+		if (toBeExtended != null) {
+			builder.append(toBeExtended);
+			builder.append(" ");
+		}
+		builder.append(toExtend);
+		return builder.toString();
+	}
 }
