@@ -1,8 +1,0 @@
-0.1.6
-
-* Updated eclipse_pde_launcher to 0.1.6
-* Updated launch_configuration to 0.1.3
-
-0.1.5
-
-* Update eclipse_pde_launcher to 0.1.5
