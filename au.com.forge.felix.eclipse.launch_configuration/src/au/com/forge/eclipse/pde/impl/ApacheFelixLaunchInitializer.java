@@ -22,7 +22,7 @@ package au.com.forge.eclipse.pde.impl;
 
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
-import org.eclipse.pde.ui.launcher.OSGiLaunchConfigurationInitializer;
+import org.eclipse.pde.launching.OSGiLaunchConfigurationInitializer;
 
 /**
  * A launch configuration initialiser that removes all the project arguments
