@@ -1,3 +1,9 @@
+0.2.0
+
+* Added launch configuration support to launch Felix 4.2+ variants.
+* Moved to Eclipse 3.6 API
+* Various other improvements/fixups.
+
 0.1.6
 
 * Fixed NPE caused by multiple bundles with same version (Issue 3)

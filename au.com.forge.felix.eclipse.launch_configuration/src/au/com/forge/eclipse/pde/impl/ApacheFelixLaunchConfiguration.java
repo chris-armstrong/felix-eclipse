@@ -169,7 +169,7 @@ public class ApacheFelixLaunchConfiguration extends
 		if (apacheFelixBundles.length == 0)
 			throw new CoreException(
 					new Status(
-							Status.CANCEL,
+							Status.ERROR,
 							PLUGIN_ID,
 							"Unable to find any Apache Felix main bundle (org.apache.felix.main) in the workspace or the Target Platform."));
 		// Find the selected apache felix bundle version
@@ -486,7 +486,7 @@ public class ApacheFelixLaunchConfiguration extends
 			}
 		}
 		else // (componentParts.length < 3)
-			throw new CoreException(new Status(Status.CANCEL, PLUGIN_ID,
+			throw new CoreException(new Status(Status.ERROR, PLUGIN_ID,
 					"Problem parsing target/workspace bundle strings."));
 		
 		return new PluginSpec(bundleName, version, startLevel, autostart);
