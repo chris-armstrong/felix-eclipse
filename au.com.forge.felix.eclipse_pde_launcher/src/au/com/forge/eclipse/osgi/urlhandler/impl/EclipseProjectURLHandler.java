@@ -292,6 +292,13 @@ public class EclipseProjectURLHandler extends AbstractURLStreamHandlerService {
 				FileNotFoundException {
 			if (addedEntries.contains(outputResource))
 				return; // Ignore it, it has already been found and added
+			
+			// Normalise path on outputResource when running on Windows
+			if (File.separatorChar == '\\')
+			{
+				outputResource = outputResource.replace("\\", "/");
+			}
+			
 			ZipEntry entry = new ZipEntry(outputResource);
 			addedEntries.add(outputResource);
 			jarFile.putNextEntry(entry);
@@ -303,6 +310,7 @@ public class EclipseProjectURLHandler extends AbstractURLStreamHandlerService {
 				if (read > 0)
 					jarFile.write(readBuffer, 0, read);
 			}
+			inputFileStream.close();
 			jarFile.closeEntry();
 		}
 
