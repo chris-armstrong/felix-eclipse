@@ -1,3 +1,13 @@
+0.2.0
+
+* Added eclipse_pde_launcher-4.2 for loading Felix 4.2 variants
+* Added support for multiple Felix frameworks in target platform
+* Fixed support of multiple versions of the same bundle in target platform.
+* Fixed generation of paths in-memory bundle in eclipse_pde_launcher when dealing 
+  with sub-directories
+
+Issues 8, 10 and 11 should now be fixed.
+
 0.1.6
 
 * Updated eclipse_pde_launcher to 0.1.6
