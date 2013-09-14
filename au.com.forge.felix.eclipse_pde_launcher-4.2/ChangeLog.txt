@@ -1,0 +1,7 @@
+0.1.6
+
+* Included patch from Marcel Hanser that merges felix.auto.* properties into the generated config.properties file (Issue 4).
+
+0.1.5
+
+* Replace System.getProperty("file.separator") with '/' in EclipseProjectURLHandler.java during construction of ZIP files
