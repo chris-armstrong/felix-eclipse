@@ -194,9 +194,6 @@ public class EclipseProjectToOSGiBundleBuilder {
 						String zipPathToResource =  new File(
 								binFiles[i]).getPath();
 						
-						if (File.separator.equals("\\")) {
-							zipPathToResource = zipPathToResource.replaceAll("\\", "/");
-						}
 						writeResourceFromFile(zipOutputStream, addedEntries, zipPathToResource, resource);
 					}
 					else
