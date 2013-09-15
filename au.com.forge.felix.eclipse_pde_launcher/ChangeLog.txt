@@ -1,3 +1,11 @@
+0.2.1
+
+* Fix for potential regression where a resource is loaded twice in writeResourceFromFile()
+
+0.2.0
+
+* Fixed assembly of internal zip file when dealing with resources inside subdirectories
+
 0.1.6
 
 * Included patch from Marcel Hanser that merges felix.auto.* properties into the generated config.properties file (Issue 4).

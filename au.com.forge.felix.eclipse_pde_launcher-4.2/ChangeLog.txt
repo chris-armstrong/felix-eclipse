@@ -1,7 +1,9 @@
-0.1.6
+0.2.1
 
-* Included patch from Marcel Hanser that merges felix.auto.* properties into the generated config.properties file (Issue 4).
+* Fix for potential regression where a resource is loaded twice in writeResourceFromFile()
+* Add forgotten fix that resolves issue loading resources from subdirectories.
 
-0.1.5
+0.2.0
 
-* Replace System.getProperty("file.separator") with '/' in EclipseProjectURLHandler.java during construction of ZIP files
+* First release based on au.com.forge.felix.eclipse_pde_launcher
+* Fixed assembly of internal zip file when dealing with resources inside subdirectories

@@ -289,15 +289,15 @@ public class EclipseProjectURLHandler extends AbstractURLStreamHandlerService {
 
 		private void writeResourceFromFile(ZipOutputStream jarFile,
 				String outputResource, File inputFile) throws IOException,
-				FileNotFoundException {
-			if (addedEntries.contains(outputResource))
-				return; // Ignore it, it has already been found and added
-			
+				FileNotFoundException {			
 			// Normalise path on outputResource when running on Windows
 			if (File.separatorChar == '\\')
 			{
 				outputResource = outputResource.replace("\\", "/");
 			}
+			
+			if (addedEntries.contains(outputResource))
+				return; // Ignore it, it has already been found and added
 			
 			ZipEntry entry = new ZipEntry(outputResource);
 			addedEntries.add(outputResource);

@@ -312,9 +312,16 @@ public class EclipseProjectToOSGiBundleBuilder {
 	private static void writeResourceFromFile(ZipOutputStream jarFile, Set<String> addedEntries,
 			String outputResource, File inputFile) throws IOException,
 			FileNotFoundException {
+
+		// Normalise path on outputResource when running on Windows
+		if (File.separatorChar == '\\')
+		{
+			outputResource = outputResource.replace("\\", "/");
+		}
+		
 		if (addedEntries.contains(outputResource))
 			return; // Ignore it, it has already been found and added
-		
+
 		ZipEntry entry = new ZipEntry(outputResource);
 		addedEntries.add(outputResource);
 		jarFile.putNextEntry(entry);
