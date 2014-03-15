@@ -22,9 +22,7 @@ package au.com.forge.eclipse.osgi.urlhandler.impl;
 
 import java.net.URLStreamHandler;
 import java.util.Dictionary;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Map;
 
 import javax.xml.parsers.SAXParserFactory;
 
