@@ -27,17 +27,15 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.felix.framework.Felix;
+import org.apache.felix.framework.FrameworkFactory;
 import org.apache.felix.framework.util.StringMap;
 import org.apache.felix.main.AutoProcessor;
 import org.apache.felix.main.Main;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleException;
-
-import org.apache.felix.framework.FrameworkFactory;
 
 import au.com.forge.eclipse.osgi.autoupdater.impl.EclipseProjectURLAutoUpdater;
 import au.com.forge.eclipse.osgi.urlhandler.impl.EPURLHandlerActivator;
