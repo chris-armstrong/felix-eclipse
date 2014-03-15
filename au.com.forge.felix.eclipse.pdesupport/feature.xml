@@ -2,12 +2,16 @@
 <feature
       id="au.com.forge.apache.felix.pdesupport"
       label="Apache Felix PDE Support for Eclipse"
-      version="0.2.1"
+      version="0.2.2"
       provider-name="Forge Research (http://www.forge.com.au)">
 
    <description url="http://code.google.com/p/felix-eclipse/">
       Adds support for running Apache Felix from OSGi framework launch
 configurations.
+
+New in version 0.2.2
+* Added au.com.forge.felix.config.init.awt boolean property, which initialises AWT on MacOS X if set to true (thanks for patch from gattazolivier@gmail.com).
+* Add support to debug a Felix main bundle that is in the PDE as a project, removing need to install it into the target platform in JAR form (thanks for patch from gattazolivier@gmail.com).
 
 New in version 0.2.1
 * Fix for potential regression where a resource is loaded twice
@@ -19,6 +23,7 @@ New in version 0.2.0
 
    <copyright>
       Copyright (C) Forge Research 2010
+Copyright (C) Christopher Armstrong 2010-2014
    </copyright>
 
    <license url="http://www.gnu.org/licenses/gpl.html">
@@ -281,27 +286,28 @@ The GNU General Public License does not permit incorporating your program into p
       <import plugin="org.eclipse.core.runtime" version="3.4.0" match="greaterOrEqual"/>
       <import plugin="org.eclipse.debug.core" version="3.4.0" match="greaterOrEqual"/>
       <import plugin="org.eclipse.jdt.launching" version="3.4.1" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.core.filesystem" version="1.2.1" match="greaterOrEqual"/>
    </requires>
 
    <plugin
          id="au.com.forge.felix.eclipse.launch_configuration"
          download-size="0"
          install-size="0"
-         version="0.0.0"
+         version="0.2.2"
          unpack="false"/>
 
    <plugin
          id="au.com.forge.felix.eclipse_pde_launcher"
          download-size="0"
          install-size="0"
-         version="0.0.0"
+         version="0.2.2"
          unpack="false"/>
 
    <plugin
          id="au.com.forge.felix.eclipse_pde_launcher-4.2"
          download-size="0"
          install-size="0"
-         version="0.0.0"
+         version="0.2.2"
          unpack="false"/>
 
    <data

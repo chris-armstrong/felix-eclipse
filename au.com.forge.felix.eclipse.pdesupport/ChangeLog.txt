@@ -1,3 +1,8 @@
+0.2.2
+
+* Added au.com.forge.felix.config.init.awt boolean property, which initialises AWT on MacOS X if set to true (thanks for patch from gattazolivier@gmail.com).
+* Add support to debug a Felix main bundle that is in the PDE as a project, removing need to install it into the target platform in JAR form (thanks for patch from gattazolivier@gmail.com).
+
 0.2.1
 
 * Fix for potential regression where a resource is loaded twice in writeResourceFromFile() in launchers

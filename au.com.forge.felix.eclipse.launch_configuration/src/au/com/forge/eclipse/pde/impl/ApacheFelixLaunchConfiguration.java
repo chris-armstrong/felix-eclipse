@@ -3,6 +3,7 @@
  *  	Apache Felix in conjunction with the Eclipse Felix PDE Launcher
  *  
  *  Copyright (C) 2010 Forge Research
+ *  Copyright (C) 2010-2014 Christopher Armstrong <carmstrong@fastmail.com.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@
 package au.com.forge.eclipse.pde.impl;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Scanner;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -42,7 +45,6 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
-import org.eclipse.osgi.service.resolver.BundleDescription;
 import org.eclipse.pde.core.plugin.IMatchRules;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.eclipse.pde.core.plugin.PluginRegistry;
@@ -65,34 +67,41 @@ public class ApacheFelixLaunchConfiguration extends
 	 * The main class in the Eclipse PDE Felix Launcher bundle.
 	 */
 	private static final String LAUNCHER_PLUGIN_MAIN_CLASS = "au.com.forge.felix.eclipse_pde_launcher.impl.EclipsePDEFelixLauncher";
-	// private static final String URL_HANDLER_PLUGIN_ID =
-	// "au.com.forge.osgi.eclipse_url_handler";
 
 	/**
 	 * The identifier of this plugin.
 	 */
 	private static final String PLUGIN_ID = "au.com.forge.felix.eclipse.launch_configuration";
 	/**
-	 * The identifier of the Eclipse PDE Felix Launcher
+	 * The identifier of the Eclipse PDE Felix Launcher (pre Felix v4.2)
 	 */
 	private static final String LAUNCHER_PLUGIN_ID_LEGACY = "au.com.forge.felix.eclipse_pde_launcher";
-	
+
+	/**
+	 * The identifier of the Eclipse PDE Felix launcher (Felix v4.2 and up)
+	 */
 	private static final String LAUNCHER_PLUGIN_ID_FELIX42 = "au.com.forge.felix.eclipse_pde_launcher-4.2";
-	
+
+	/**
+	 * The launcher configuration property that specifies the path
+	 * to the configuration file to be merged into the Felix launch
+	 * configuration.
+	 * 
+	 */
 	private static final String LAUNCHER_CONFIG_PROPERTY_KEY = "au.com.forge.felix.config.properties";
 
 	/**
 	 * The bundle name of the Apache Felix main bundle.
 	 */
 	private static final String APACHE_FELIX_MAIN_BUNDLE = "org.apache.felix.main";
-	
+
 	/**
 	 * Internal representation of a plugin (aka bundle).
+	 * 
 	 * @author chris
-	 *
+	 * 
 	 */
-	private static class PluginSpec
-	{
+	private static class PluginSpec {
 		public PluginSpec(String bundleName2, String version2,
 				Integer startLevel2, boolean autostart2) {
 			this.bundleName = bundleName2;
@@ -100,12 +109,13 @@ public class ApacheFelixLaunchConfiguration extends
 			this.startLevel = startLevel2;
 			this.autostart = autostart2;
 		}
+
 		public String bundleName;
 		public String version;
 		public Integer startLevel;
 		public boolean autostart;
 	}
-	
+
 	/**
 	 * Create the list of program arguments that are to be passed to the Felix
 	 * Application launcher. This implementation passes the arguments generated
@@ -123,7 +133,7 @@ public class ApacheFelixLaunchConfiguration extends
 	 */
 	public String[] getProgramArguments(ILaunchConfiguration configuration)
 			throws CoreException {
-		List arguments = new ArrayList();
+		List<String> arguments = new ArrayList<String>();
 
 		File bundleCacheDir = new File(getConfigDir(configuration),
 				"bundle-cache");
@@ -136,16 +146,21 @@ public class ApacheFelixLaunchConfiguration extends
 				.split(" ")));
 		return (String[]) arguments.toArray(new String[arguments.size()]);
 	}
-	
+
+	/**
+	 * Cleanup working directories and configuration
+	 */
 	protected void clear(ILaunchConfiguration configuration,
 			IProgressMonitor monitor) throws CoreException {
+		
 		File bundleCacheDir = new File(getConfigDir(configuration),
-		"bundle-cache");
+				"bundle-cache");
 		{
 			IFileStore bundleCacheStore = EFS.getStore(bundleCacheDir.toURI());
 			bundleCacheStore.delete(EFS.NONE, monitor);
 		}
-		if (configuration.getAttribute(IPDELauncherConstants.CONFIG_CLEAR_AREA, false)) {
+		if (configuration.getAttribute(IPDELauncherConstants.CONFIG_CLEAR_AREA,
+				false)) {
 			File confDir = new File(getConfigDir(configuration), "conf");
 			IFileStore confDirStore = EFS.getStore(confDir.toURI());
 			confDirStore.delete(EFS.NONE, monitor);
@@ -160,12 +175,12 @@ public class ApacheFelixLaunchConfiguration extends
 	 */
 	public String[] getClasspath(ILaunchConfiguration configuration)
 			throws CoreException {
-		ArrayList classpath = new ArrayList();
-		
+		ArrayList<String> classpath = new ArrayList<String>();
+
 		// Find all the Apache Felix "main" bundles in the target platform
-		IPluginModelBase[] apacheFelixBundles = PluginRegistry
-				.findModels(APACHE_FELIX_MAIN_BUNDLE, null, null);
-		
+		IPluginModelBase[] apacheFelixBundles = PluginRegistry.findModels(
+				APACHE_FELIX_MAIN_BUNDLE, null, null);
+
 		if (apacheFelixBundles.length == 0)
 			throw new CoreException(
 					new Status(
@@ -175,23 +190,25 @@ public class ApacheFelixLaunchConfiguration extends
 		// Find the selected apache felix bundle version
 		Version targetVersion = findTargetApacheFelixVersion(configuration);
 		IPluginModelBase apacheFelixBundle = null;
-		if (targetVersion != null)
-		{
-			for (int i= 0; i < apacheFelixBundles.length; i++ )
-			{
-				if (apacheFelixBundles[i].getBundleDescription().getVersion().equals(targetVersion))
-				{
+		if (targetVersion != null) {
+			for (int i = 0; i < apacheFelixBundles.length; i++) {
+				if (apacheFelixBundles[i].getBundleDescription().getVersion()
+						.equals(targetVersion)) {
 					apacheFelixBundle = apacheFelixBundles[i];
 					break;
 				}
 			}
-			if (apacheFelixBundle == null)
-			{
-				throw new CoreException(new Status(Status.ERROR, PLUGIN_ID, "Could not find bundle location for selected Apache Felix Main version "+targetVersion+" among Apache Felix Main bundles found in target platform "+Arrays.toString(apacheFelixBundles)));
+			if (apacheFelixBundle == null) {
+				throw new CoreException(
+						new Status(
+								Status.ERROR,
+								PLUGIN_ID,
+								"Could not find bundle location for selected Apache Felix Main version "
+										+ targetVersion
+										+ " among Apache Felix Main bundles found in target platform "
+										+ Arrays.toString(apacheFelixBundles)));
 			}
-		}
-		else
-		{
+		} else {
 			apacheFelixBundle = apacheFelixBundles[0];
 		}
 		if (apacheFelixBundle.getInstallLocation() == null)
@@ -202,53 +219,67 @@ public class ApacheFelixLaunchConfiguration extends
 							"Found Felix plugin in workspace, but unable to find its corresponding JAR file."));
 		classpath.add(apacheFelixBundle.getInstallLocation());
 
-		Version felixBundleVersion = apacheFelixBundle.getBundleDescription().getVersion();
+		Version felixBundleVersion = apacheFelixBundle.getBundleDescription()
+				.getVersion();
 		int major = felixBundleVersion.getMajor();
 		int minor = felixBundleVersion.getMinor();
-		Collection felix42LauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_FELIX42);
-		Collection legacyLauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_LEGACY);
-		
-		if ((major == 4 && minor >= 2) || (major > 4))
-		{
+		Collection<String> felix42LauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_FELIX42);
+		Collection<String> legacyLauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_LEGACY);
+
+		if ((major == 4 && minor >= 2) || (major > 4)) {
 			if (felix42LauncherClasspath != null)
 				classpath.addAll(felix42LauncherClasspath);
 			else
-				throw new CoreException(new Status(Status.ERROR, PLUGIN_ID,
-						"Unable to find required Eclipse-Felix launcher plugin for Apache Felix 4.2 or newer"
-								+ " packaged as a JAR in the target "
-								+ "platform, Eclipse installation or workspace."));
-		} 
-		else
-		{
+				throw new CoreException(
+						new Status(
+								Status.ERROR,
+								PLUGIN_ID,
+								"Unable to find required Eclipse-Felix launcher plugin for Apache Felix 4.2 or newer"
+										+ " packaged as a JAR in the target "
+										+ "platform, Eclipse installation or workspace."));
+		} else {
 			if (legacyLauncherClasspath != null)
 				classpath.addAll(legacyLauncherClasspath);
 			else
-				throw new CoreException(new Status(Status.ERROR, PLUGIN_ID,
-					"Unable to find required Eclipse-Felix launcher plugin for older Apache Felix (older than 4.2)"
-							+ " packaged as a JAR in the target "
-							+ "platform, Eclipse installation or workspace."));
+				throw new CoreException(
+						new Status(
+								Status.ERROR,
+								PLUGIN_ID,
+								"Unable to find required Eclipse-Felix launcher plugin for older Apache Felix (older than 4.2)"
+										+ " packaged as a JAR in the target "
+										+ "platform, Eclipse installation or workspace."));
 
 		}
 
 		return (String[]) classpath.toArray(new String[classpath.size()]);
 	}
 
+	/**
+	 * Find the Apache Felix version in the launch configuration.
+	 * 
+	 * @param configuration launch configuration
+	 * @return the Felix version, or null if there is no Felix plugin in the launch config
+	 * @throws CoreException
+	 */
 	private Version findTargetApacheFelixVersion(
 			ILaunchConfiguration configuration) throws CoreException {
 		String[] targetPlugins = getTargetPluginList(configuration);
-		for (int i = 0; i < targetPlugins.length; i++)
-		{
+		for (int i = 0; i < targetPlugins.length; i++) {
 			String targetPlugin = targetPlugins[i];
-			PluginSpec pluginSpec = parseTargetPluginString(targetPlugin, false, null);
+			PluginSpec pluginSpec = parseTargetPluginString(targetPlugin,
+					false, null);
 			if (pluginSpec.bundleName.equals(APACHE_FELIX_MAIN_BUNDLE))
-				return pluginSpec.version != null ? new Version(pluginSpec.version) : null;
+				return pluginSpec.version != null ? new Version(
+						pluginSpec.version) : null;
 		}
 		return null;
 	}
 
 	/**
+	 * MOD_0.2.2 ogattaz
+	 * 
 	 * Calculate the classpath of the specified plugin that lives in the Eclipse
-	 * installation.
+	 * installation or in the development workspace.
 	 * 
 	 * @param pluginId
 	 *            The OSGi plugin ID to calculate the classpath for.
@@ -257,9 +288,9 @@ public class ApacheFelixLaunchConfiguration extends
 	 *             Thrown when the specified plugin cannot be found in the
 	 *             workspace or Eclipse installation.
 	 */
-	private Collection calculateNeededClassPath(String pluginId)
+	private Collection<String> calculateNeededClassPath(String pluginId)
 			throws CoreException {
-		ArrayList classpath = new ArrayList();
+		ArrayList<String> classpath = new ArrayList<String>();
 		IPluginModelBase model = PluginRegistry.findModel(pluginId);
 		if (model != null && model.getUnderlyingResource() == null) {
 			classpath.add(model.getInstallLocation());
@@ -270,11 +301,134 @@ public class ApacheFelixLaunchConfiguration extends
 			try {
 				File bundleFile = FileLocator.getBundleFile(bundle);
 				classpath.add(bundleFile.getAbsolutePath());
+				
+				/*
+				 * MOD_0.2.2 ogattaz
+				 * 
+				 * This trick to be able to retrieve the
+				 * "Eclipse DEFelix Launcher" class during the plugins
+				 * development time
+				 * 
+				 * This trick allows you to debug the plugins live, by launching
+				 * an instance of Eclipse from your development Eclipse using
+				 * the PDE projects rather the built and installed plugins
+				 * 
+				 * if the bundle AbsolutePath is the file directory of a PDE
+				 * project on the file system, tries to find a sub folder "bin"
+				 * (cf. a pde project)
+				 */
+				if (bundleFile.isDirectory() && isPdeProjectDir(bundleFile)) {
+
+					// In a PDE project, the classes are available in the "bin"
+					// sub directory of the project (unlike in the jar file of a
+					// built bundle).
+					File wBundleBinDir = new File(bundleFile, "bin");
+					if (wBundleBinDir.exists()) {
+						classpath.add(wBundleBinDir.getAbsolutePath());
+					}
+				}
+
 				return classpath;
 			} catch (IOException e) {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Determine if the specified project is a PDE project.
+	 * 
+	 * MOD_0.2.2 ogattaz
+	 * 
+	 * @return true if the file directory contains valid ".classpath" and
+	 *         ".project" files
+	 */
+	private boolean isPdeProjectDir(File aDir) {
+		return isDotProjectFileExists(aDir) && isDotClasspathFileExists(aDir);
+	}
+
+	/**
+	 * Determine if the directory is a project directory
+	 * (i.e. contains a valid .classpath file)
+	 *  
+	 * <pre>
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <classpath>
+	 * ...
+	 * </classpath>
+	 * 
+	 * </pre>
+	 * @author MOD_0.2.2 ogattaz
+	 * @param aDir
+	 *            the file directory to be explored
+	 * @return true if the file directory contains a valid ".classpath" file
+	 */
+	private boolean isDotClasspathFileExists(File aDir) {
+		File wBundleClasspathFile = new File(aDir, ".classpath");
+		return wBundleClasspathFile.exists()
+				&& isFileContainsText(wBundleClasspathFile, "</classpath>");
+
+	}
+
+	/**
+	 * Determine if the directory contains a valid .project file
+	 * MOD_0.2.2 ogattaz
+	 * 
+	 * <pre>
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <projectDescription>
+	 * ...
+	 * </projectDescription>
+	 * </pre>
+	 * 
+	 * @return
+	 */
+	/**
+	 * @param aDir
+	 *            the file directory to be explored
+	 * @return true if the file directory contains a valid ".project" file
+	 */
+	private boolean isDotProjectFileExists(File aDir) {
+		File wBundleProjectFile = new File(aDir, ".project");
+		return wBundleProjectFile.exists()
+				&& isFileContainsText(wBundleProjectFile,
+						"</projectDescription>");
+	}
+
+	/**
+	 * Determine if the file contains a specific
+	 * piece of text.
+	 * 
+	 * MOD_0.2.2 ogattaz
+	 * 
+	 * @param aFile
+	 * @param aText
+	 * @return
+	 */
+	private boolean isFileContainsText(File aFile, String aText) {
+
+		if (aText != null && !aText.isEmpty()) {
+			Scanner scanner = null;
+			try {
+				scanner = new Scanner(aFile);
+				// now read the file line by line...
+				String wLine;
+				while (scanner.hasNextLine()) {
+					wLine = scanner.nextLine();
+					if (wLine != null && !wLine.isEmpty()
+							&& wLine.contains(aText)) {
+						return true;
+					}
+				}
+			} catch (FileNotFoundException e) {
+				// nothing special , return false
+			} finally {
+				if (scanner != null) {
+					scanner.close();
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -284,9 +438,10 @@ public class ApacheFelixLaunchConfiguration extends
 	 */
 	public String[] getVMArguments(ILaunchConfiguration configuration)
 			throws CoreException {
-		ArrayList vmArguments = new ArrayList();
+		ArrayList<String> vmArguments = new ArrayList<String>();
 		vmArguments.addAll(Arrays.asList(super.getVMArguments(configuration)));
-		vmArguments.add(String.format("-D%s=", new Object[] {LAUNCHER_CONFIG_PROPERTY_KEY})
+		vmArguments.add(String.format("-D%s=",
+				new Object[] { LAUNCHER_CONFIG_PROPERTY_KEY })
 				+ createConfigurationProperties(configuration));
 		return (String[]) vmArguments.toArray(new String[vmArguments.size()]);
 	}
@@ -316,15 +471,15 @@ public class ApacheFelixLaunchConfiguration extends
 	private String createConfigurationProperties(
 			ILaunchConfiguration configuration) throws CoreException {
 		// Felix conf/ directory, inside the Eclipse "configuration area"
-		
+
 		File confDir = new File(getConfigDir(configuration), "conf");
 		if (!confDir.exists())
 			confDir.mkdir();
 		File configPropertiesFile = new File(confDir, "config.properties");
 		Properties configProperties = new Properties();
 
-		configProperties.setProperty("felix.cache.rootdir", getConfigDir(
-				configuration).getAbsolutePath());
+		configProperties.setProperty("felix.cache.rootdir",
+				getConfigDir(configuration).getAbsolutePath());
 		configProperties.setProperty("org.osgi.framework.storage",
 				"bundle-cache");
 		configProperties
@@ -336,9 +491,11 @@ public class ApacheFelixLaunchConfiguration extends
 				defaultStartLevel.toString());
 		boolean defaultAutoStart = configuration.getAttribute(
 				IPDELauncherConstants.DEFAULT_AUTO_START, true);
-
-		Map startLevelBundles = new HashMap(); // Installed+Started bundles
-		Map installLevelBundles = new HashMap(); // Installed only bundles
+		
+		// Installed+Started bundles
+		Map<Integer,List<String>> startLevelBundles = new HashMap<Integer,List<String>>(); 
+		// Installed only bundles
+		Map<Integer,List<String>>  installLevelBundles = new HashMap<Integer,List<String>> (); 
 
 		// Parse the list of selected Target Platform bundles
 		String[] targetPlugins = getTargetPluginList(configuration);
@@ -356,17 +513,6 @@ public class ApacheFelixLaunchConfiguration extends
 					workspacePlugins, startLevelBundles, installLevelBundles,
 					"eclipse-project");
 		}
-
-		// // Find the Eclipse URL handler bundle (disabled, URL handler done by
-		// launcher)
-		// String eclipseProjectHandlerURL = findURLHandlerBundle();
-		//
-		// List zeroStartLevel = (List) startLevelBundles.get(new Integer(1));
-		// if (zeroStartLevel == null) {
-		// zeroStartLevel = new ArrayList();
-		// startLevelBundles.put(new Integer(1), zeroStartLevel);
-		// }
-		// zeroStartLevel.add(eclipseProjectHandlerURL);
 
 		writeBundles(startLevelBundles, "felix.auto.start.", configProperties);
 		writeBundles(installLevelBundles, "felix.auto.install.",
@@ -386,18 +532,21 @@ public class ApacheFelixLaunchConfiguration extends
 
 	/**
 	 * Retrieve the target plugin list from the launch configuration
-	 * @param configuration launch configuration
+	 * 
+	 * @param configuration
+	 *            launch configuration
 	 * @return target plugin list
 	 * @throws CoreException
 	 */
-	private String[] getTargetPluginList(ILaunchConfiguration configuration) throws CoreException {
+	private String[] getTargetPluginList(ILaunchConfiguration configuration)
+			throws CoreException {
 		String targetPlatformPluginList = configuration.getAttribute(
 				IPDELauncherConstants.TARGET_BUNDLES, (String) null);
-		String [] targetPlugins = null;
-		 if (targetPlatformPluginList != null) {
-			 targetPlugins= targetPlatformPluginList.split(",");
-		 }
-		 return targetPlugins;
+		String[] targetPlugins = null;
+		if (targetPlatformPluginList != null) {
+			targetPlugins = targetPlatformPluginList.split(",");
+		}
+		return targetPlugins;
 	}
 
 	/**
@@ -424,95 +573,102 @@ public class ApacheFelixLaunchConfiguration extends
 	 */
 	private void parseBundleList(Integer defaultStartLevel,
 			boolean defaultAutoStart, String[] targetPlugins,
-			Map startLevelBundles, Map installLevelBundles, String protocol)
+			Map<Integer,List<String> >  startLevelBundles, Map<Integer,List<String> >  installLevelBundles, String protocol)
 			throws CoreException {
 		for (int i = 0; i < targetPlugins.length; i++) {
 			String targetPlugin = targetPlugins[i];
-			PluginSpec plugin = parseTargetPluginString(targetPlugin, defaultAutoStart, defaultStartLevel);
+			PluginSpec plugin = parseTargetPluginString(targetPlugin,
+					defaultAutoStart, defaultStartLevel);
 
-			
-			List bundles;
+			List<String>  bundles;
 			if (plugin.autostart) {
-				bundles = (List) startLevelBundles.get(plugin.startLevel);
+				bundles = (List<String>) startLevelBundles.get(plugin.startLevel);
 				if (bundles == null) {
-					bundles = new ArrayList();
+					bundles = new ArrayList<String>();
 					startLevelBundles.put(plugin.startLevel, bundles);
 				}
 			} else {
-				bundles = (List) installLevelBundles.get(plugin.startLevel);
+				bundles = (List<String>) installLevelBundles.get(plugin.startLevel);
 				if (bundles == null) {
-					bundles = new ArrayList();
+					bundles = new ArrayList<String>();
 					installLevelBundles.put(plugin.startLevel, bundles);
 				}
 			}
 
-			IPluginModelBase pluginModelBase = findBundleModel(plugin.bundleName, plugin.version);
-			if (pluginModelBase == null)
-			{
-				throw new CoreException(new Status(Status.ERROR, PLUGIN_ID, "Unable to load plugin model for bundle '"+plugin.bundleName+"' version "+plugin.version));
+			IPluginModelBase pluginModelBase = findBundleModel(
+					plugin.bundleName, plugin.version);
+			if (pluginModelBase == null) {
+				throw new CoreException(new Status(Status.ERROR, PLUGIN_ID,
+						"Unable to load plugin model for bundle '"
+								+ plugin.bundleName + "' version "
+								+ plugin.version));
 			}
 			bundles.add(protocol + ":" + pluginModelBase.getInstallLocation());
 		}
 	}
 
-	private PluginSpec parseTargetPluginString(String targetPlugin, boolean defaultAutoStart, Integer defaultStartLevel) throws CoreException {
-		String [] pluginSpec = targetPlugin.split("@", 2);
-		
-		if (pluginSpec.length != 2)
-		{
-			throw new CoreException(new Status(Status.ERROR, PLUGIN_ID, "Unexpected target plugin specification: "+targetPlugin));
+	/**
+	 * Parse a target plugin name and generate a PluginSpec
+	 * for the framework launch.
+	 * 
+	 * @param targetPlugin eclipse-generated plugin name
+	 * @param defaultAutoStart default auto start level
+	 * @param defaultStartLevel default plugin start level
+	 * @return a plugin spec for launching the bundle
+	 * @throws CoreException
+	 */
+	private PluginSpec parseTargetPluginString(String targetPlugin,
+			boolean defaultAutoStart, Integer defaultStartLevel)
+			throws CoreException {
+		String[] pluginSpec = targetPlugin.split("@", 2);
+
+		if (pluginSpec.length != 2) {
+			throw new CoreException(new Status(Status.ERROR, PLUGIN_ID,
+					"Unexpected target plugin specification: " + targetPlugin));
 		}
 		final String bundleSpec = pluginSpec[0];
 		final String startSpec = pluginSpec[1];
 		final String[] nameParts = bundleSpec.split("\\*", 2);
 		final String[] componentParts = startSpec.split(":", 2);
-		
+
 		Integer startLevel;
 		boolean autostart;
 		String version = null;
 		String bundleName;
-		if (componentParts.length == 2)
-		{
+		if (componentParts.length == 2) {
 			autostart = componentParts[1].equals("default") ? defaultAutoStart
 					: Boolean.valueOf(componentParts[1]).booleanValue();
 
 			startLevel = componentParts[0].equals("default") ? defaultStartLevel
 					: Integer.valueOf(componentParts[0]);
-			
+
 			bundleName = nameParts[0];
-			if (nameParts.length == 2)
-			{
+			if (nameParts.length == 2) {
 				version = nameParts[1];
 			}
-		}
-		else // (componentParts.length < 3)
+		} else
+			// (componentParts.length < 3)
 			throw new CoreException(new Status(Status.ERROR, PLUGIN_ID,
 					"Problem parsing target/workspace bundle strings."));
-		
+
 		return new PluginSpec(bundleName, version, startLevel, autostart);
 	}
 
-	private IPluginModelBase findBundleModel(final String bundleName, final String version) {
+	/**
+	 * Query the plugin registry for a bundle
+	 * 
+	 * @param bundleName the bundle name
+	 * @param version the bundle version (optionally null)
+	 * @return the plugin model base object
+	 */
+	private IPluginModelBase findBundleModel(final String bundleName,
+			final String version) {
 		if (version == null)
-			return PluginRegistry
-					.findModel(bundleName);
-		else
-		{
-			return PluginRegistry.findModel(bundleName, version, IMatchRules.PERFECT, null);
-//			IPluginModelBase[] activeModels = PluginRegistry.getActiveModels();
-//			IPluginModelBase model;
-//			for (int i= 0; i < activeModels.length; i++)
-//			{
-//				
-//				model = activeModels[i];
-//				BundleDescription desc = model.getBundleDescription();
-//				if (desc != null &&
-//						desc.getName().equals(bundleName) &&
-//						desc.getVersion().toString().equals(version))
-//					return model;
-//			}
+			return PluginRegistry.findModel(bundleName);
+		else {
+			return PluginRegistry.findModel(bundleName, version,
+					IMatchRules.PERFECT, null);
 		}
-//		return null;
 	}
 
 	/**
@@ -529,56 +685,24 @@ public class ApacheFelixLaunchConfiguration extends
 	 *            The set of configuration properties which will be written to
 	 *            the configuration properties file for Felix
 	 */
-	private void writeBundles(Map startLevelBundles, String propertyPrefix,
+	private void writeBundles(Map<Integer,List<String>> startLevelBundles, String propertyPrefix,
 			Properties configProperties) {
 
-		Iterator startLevelIt = startLevelBundles.entrySet().iterator();
+		Iterator<Entry<Integer,List<String>>> startLevelIt = startLevelBundles.entrySet().iterator();
 		while (startLevelIt.hasNext()) {
 			StringBuffer bundleList = new StringBuffer();
-			Entry entry = (Entry) startLevelIt.next();
+			Entry<Integer,List<String>> entry = startLevelIt.next();
 			Integer startLevel = (Integer) entry.getKey();
-			List bundles = (List) entry.getValue();
-			Iterator bundleIt = bundles.iterator();
+			List<String> bundles = entry.getValue();
+			Iterator<String> bundleIt = bundles.iterator();
 			while (bundleIt.hasNext()) {
 				String bundleUrl = (String) bundleIt.next();
 				bundleList.append(bundleUrl);
 				bundleList.append(" ");
 			}
 			configProperties.setProperty(
-					propertyPrefix + startLevel.toString(), bundleList
-							.toString());
-		}
-	}
-	/**
-	 * Write the list of bundles and their start levels to the configuration
-	 * file.
-	 * 
-	 * @param startLevelBundles
-	 *            A map of start level => array of strings containing bundle
-	 *            names
-	 * @param propertyPrefix
-	 *            The prefix of the property used to auto-start / auto-install
-	 *            that start level
-	 * @param configProperties
-	 *            The set of configuration properties which will be written to
-	 *            the configuration properties file for Felix
-	 */
-	private void writeBundles(Map startLevelBundles, String propertyPrefix,
-			List props) {
-		Iterator startLevelIt = startLevelBundles.entrySet().iterator();
-		while (startLevelIt.hasNext()) {
-			StringBuffer bundleList = new StringBuffer();
-			Entry entry = (Entry) startLevelIt.next();
-			Integer startLevel = (Integer) entry.getKey();
-			List bundles = (List) entry.getValue();
-			Iterator bundleIt = bundles.iterator();
-			while (bundleIt.hasNext()) {
-				String bundleUrl = (String) bundleIt.next();
-				bundleList.append(bundleUrl);
-				bundleList.append(" ");
-			}
-			props.add(String.format("-D%s%d=%s", new Object[]{propertyPrefix , startLevel, bundleList
-							.toString()}));
+					propertyPrefix + startLevel.toString(),
+					bundleList.toString());
 		}
 	}
 }
