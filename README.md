@@ -1,4 +1,11 @@
+** This project is no longer maintained. **
+
+Please consider alternatives such as:
+  * [Pax Runner](https://ops4j1.jira.com/wiki/spaces/paxrunner/overview)
+  * Eclipse - Eclipse itself should have builtin support for Apache Felix runtimes now
+
 # About #
+
 **felix-eclipse** is a plugin for the Eclipse Plugin Development Environment (PDE) that integrates Apache Felix as an OSGi framework in Eclipse. It makes it easy to debug Apache Felix as an Eclipse target platform.
 
 # Download #
