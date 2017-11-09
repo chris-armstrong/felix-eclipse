@@ -83,6 +83,11 @@ public class ApacheFelixLaunchConfiguration extends
 	private static final String LAUNCHER_PLUGIN_ID_FELIX42 = "au.com.forge.felix.eclipse_pde_launcher-4.2";
 
 	/**
+	 * The identifier of the Eclipse PDE Felix launcher (Felix v5.0 and up)
+	 */
+	private static final String LAUNCHER_PLUGIN_ID_FELIX50 = "au.com.forge.felix.eclipse_pde_launcher-5.0";
+	
+	/**
 	 * The launcher configuration property that specifies the path
 	 * to the configuration file to be merged into the Felix launch
 	 * configuration.
@@ -223,34 +228,47 @@ public class ApacheFelixLaunchConfiguration extends
 				.getVersion();
 		int major = felixBundleVersion.getMajor();
 		int minor = felixBundleVersion.getMinor();
+		Collection<String> felix50LauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_FELIX50);
 		Collection<String> felix42LauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_FELIX42);
 		Collection<String> legacyLauncherClasspath = calculateNeededClassPath(LAUNCHER_PLUGIN_ID_LEGACY);
 
-		if ((major == 4 && minor >= 2) || (major > 4)) {
-			if (felix42LauncherClasspath != null)
-				classpath.addAll(felix42LauncherClasspath);
+		if ((major == 5 && minor >= 0) || (major > 5)) {
+			if (felix50LauncherClasspath != null)
+				classpath.addAll(felix50LauncherClasspath);
 			else
 				throw new CoreException(
 						new Status(
 								Status.ERROR,
 								PLUGIN_ID,
-								"Unable to find required Eclipse-Felix launcher plugin for Apache Felix 4.2 or newer"
+								"Unable to find required Eclipse-Felix launcher plugin for Apache Felix 5.0 or newer"
 										+ " packaged as a JAR in the target "
 										+ "platform, Eclipse installation or workspace."));
 		} else {
-			if (legacyLauncherClasspath != null)
-				classpath.addAll(legacyLauncherClasspath);
-			else
-				throw new CoreException(
-						new Status(
-								Status.ERROR,
-								PLUGIN_ID,
-								"Unable to find required Eclipse-Felix launcher plugin for older Apache Felix (older than 4.2)"
-										+ " packaged as a JAR in the target "
-										+ "platform, Eclipse installation or workspace."));
-
+			if ((major == 4 && (minor >= 2 || minor <= 9))) {
+				if (felix42LauncherClasspath != null)
+					classpath.addAll(felix42LauncherClasspath);
+				else
+					throw new CoreException(
+							new Status(
+									Status.ERROR,
+									PLUGIN_ID,
+									"Unable to find required Eclipse-Felix launcher plugin for Apache Felix 4.2 or newer"
+											+ " packaged as a JAR in the target "
+											+ "platform, Eclipse installation or workspace."));
+			} else {
+				if (legacyLauncherClasspath != null)
+					classpath.addAll(legacyLauncherClasspath);
+				else
+					throw new CoreException(
+							new Status(
+									Status.ERROR,
+									PLUGIN_ID,
+									"Unable to find required Eclipse-Felix launcher plugin for older Apache Felix (older than 4.2)"
+											+ " packaged as a JAR in the target "
+											+ "platform, Eclipse installation or workspace."));
+	
+			}
 		}
-
 		return (String[]) classpath.toArray(new String[classpath.size()]);
 	}
 

@@ -1,0 +1,18 @@
+0.2.3
+
+* 
+
+0.2.2
+
+* Added au.com.forge.felix.config.init.awt boolean property, which initialises AWT on 
+  MacOS X if set to true (thanks for patch from gattazolivier@gmail.com).
+
+0.2.1
+
+* Fix for potential regression where a resource is loaded twice in writeResourceFromFile()
+* Add forgotten fix that resolves issue loading resources from subdirectories.
+
+0.2.0
+
+* First release based on au.com.forge.felix.eclipse_pde_launcher
+* Fixed assembly of internal zip file when dealing with resources inside subdirectories
