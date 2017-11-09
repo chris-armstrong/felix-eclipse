@@ -1,4 +1,4 @@
-** This project is no longer maintained. **
+ **This project is no longer maintained.**
 
 Please consider alternatives such as:
   * [Pax Runner](https://ops4j1.jira.com/wiki/spaces/paxrunner/overview)
